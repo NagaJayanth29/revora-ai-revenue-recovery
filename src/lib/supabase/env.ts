@@ -10,6 +10,28 @@ function required(name: string, value: string | undefined): string {
   return value.trim();
 }
 
+/**
+ * Check whether Supabase browser configuration is present.
+ * In Demo Mode, Supabase is disabled and credentials are not required.
+ */
+export function isSupabaseConfigured(): boolean {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return false;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const pubKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+  return Boolean(url && pubKey);
+}
+
+/**
+ * Check whether Supabase server configuration is present.
+ * In Demo Mode, Supabase is disabled and credentials are not required.
+ */
+export function isSupabaseServerConfigured(): boolean {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return false;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const secretKey = process.env.SUPABASE_SECRET_KEY?.trim();
+  return Boolean(url && secretKey);
+}
+
 /** Project URL for supabase-js (no /rest/v1 path). */
 export function getSupabaseUrl(): string {
   const raw = required(
@@ -25,3 +47,4 @@ export function getSupabasePublishableKey(): string {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
   );
 }
+

@@ -5,8 +5,10 @@ import {
   resetStore,
   type RevoraStore,
 } from "@/lib/store/memory";
+import { ensureSeeded } from "@/lib/store/seed";
 import {
   loadMerchantSnapshot,
+  shouldUseDemoStore,
   updateOpportunity as sbUpdateOpportunity,
   insertAudit,
   insertAction,
@@ -34,6 +36,9 @@ import { createUuid, isUuid } from "@/lib/utils";
  * while Supabase remains the durable source of truth.
  */
 export async function hydrateFromSupabase(): Promise<RevoraStore> {
+  if (shouldUseDemoStore()) {
+    return ensureSeeded();
+  }
   const snap = await loadMerchantSnapshot();
   return applySnapshot(snap);
 }
@@ -69,6 +74,9 @@ function ensureUuid(id: string): string {
 
 /** Persist mutated opportunity + related rows after an in-memory engine run. */
 export async function persistOpportunityState(opportunityId: string): Promise<void> {
+  if (shouldUseDemoStore()) {
+    return;
+  }
   const store = getStore();
   const opp = store.opportunities.find((o) => o.id === opportunityId);
   if (!opp) return;
@@ -220,6 +228,9 @@ async function upsertOutcome(o: RecoveryOutcome) {
 }
 
 export async function persistIncident(incident: SystemIncident) {
+  if (shouldUseDemoStore()) {
+    return;
+  }
   try {
     await insertIncident(incident);
   } catch {
@@ -228,6 +239,9 @@ export async function persistIncident(incident: SystemIncident) {
 }
 
 export async function persistPolicy(rules: PolicyRules, updatedBy: string) {
+  if (shouldUseDemoStore()) {
+    return;
+  }
   await updatePolicyRules(rules.merchant_id, rules, updatedBy);
 }
 
@@ -235,5 +249,9 @@ export async function persistOpportunityPatch(
   id: string,
   patch: Partial<RecoveryOpportunity>
 ) {
+  if (shouldUseDemoStore()) {
+    return;
+  }
   await sbUpdateOpportunity(id, patch);
 }
+
