@@ -1,0 +1,12 @@
+# Minimal Supabase CLI config for REVORA migrations.
+# Apply remotely with: npx tsx scripts/apply-supabase-migrations.ts
+# (requires SUPABASE_DB_PASSWORD or SUPABASE_DB_URL in .env.local)
+
+project_id = "jcoqhilrgolqocmcbfci"
+
+[db]
+port = 54322
+major_version = 15
+
+[db.migrations]
+schema_paths = []

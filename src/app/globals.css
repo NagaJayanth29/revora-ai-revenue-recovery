@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+@theme {
+  --color-revora-bg: #08090d;
+  --color-revora-surface: #0e1118;
+  --color-revora-elevated: #151822;
+  --color-revora-card: #11141e;
+  --color-revora-border: #232736;
+  --color-revora-border-subtle: #181b26;
+  --color-revora-text: #f5f3ef;
+  --color-revora-muted: #9e998e;
+  --color-revora-faint: #635f56;
+  --color-revora-amber: #d4a574;
+  --color-revora-amber-light: #f0c89c;
+  --color-revora-amber-dim: #997047;
+  --color-revora-success: #5dbe8a;
+  --color-revora-danger: #e07a6a;
+  --color-revora-info: #6b9fd4;
+  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-revora-border-subtle);
+  }
+
+  html {
+    color-scheme: dark;
+    background-color: var(--color-revora-bg);
+  }
+
+  body {
+    background: var(--color-revora-bg);
+    color: var(--color-revora-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-revora-amber) 32%, transparent);
+    color: #ffffff;
+  }
+
+  :focus-visible {
+    outline: 1.5px solid var(--color-revora-amber);
+    outline-offset: 2px;
+  }
+
+  /* Precision dark fintech scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1e2230;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2a2e3e;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .revora-grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(212, 165, 116, 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(212, 165, 116, 0.035) 1px, transparent 1px);
+    background-size: 36px 36px;
+    mask-image: radial-gradient(ellipse 85% 65% at 50% 0%, black 20%, transparent 100%);
+  }
+
+  .revora-hero-glow {
+    background: radial-gradient(circle at 50% -10%, rgba(212, 165, 116, 0.09) 0%, rgba(14, 17, 24, 0) 70%);
+  }
+
+  .revora-radial-field {
+    background: radial-gradient(ellipse 60% 40% at 50% 30%, rgba(212, 165, 116, 0.06) 0%, rgba(93, 190, 138, 0.02) 40%, transparent 80%);
+  }
+
+  .revora-hairline {
+    box-shadow: inset 0 0 0 1px var(--color-revora-border-subtle);
+  }
+
+  .revora-luminous-edge {
+    border: 1px solid rgba(212, 165, 116, 0.4);
+    box-shadow: 0 0 20px -4px rgba(212, 165, 116, 0.22), inset 0 0 16px -8px rgba(212, 165, 116, 0.12);
+  }
+
+  .revora-emerald-edge {
+    border: 1px solid rgba(93, 190, 138, 0.4);
+    box-shadow: 0 0 20px -4px rgba(93, 190, 138, 0.2), inset 0 0 16px -8px rgba(93, 190, 138, 0.1);
+  }
+
+  .revora-gold-border {
+    border: 1px solid rgba(212, 165, 116, 0.35);
+  }
+
+  .revora-gold-glow {
+    box-shadow: 0 0 28px -6px rgba(212, 165, 116, 0.2);
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@keyframes revoraPulseBreathing {
+  0%, 100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.015);
+  }
+}
+
+.revora-breathing {
+  animation: revoraPulseBreathing 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

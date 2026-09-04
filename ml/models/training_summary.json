@@ -1,0 +1,51 @@
+{
+  "model_name": "recovery_probability",
+  "model_version": "v0.1-demo",
+  "data_label": "DEMO / SYNTHETIC DATA",
+  "n_train": 6451,
+  "n_test": 1613,
+  "metrics": {
+    "brier": 0.19389630498883528,
+    "accuracy": 0.7098574085554866,
+    "precision": 0.9193697868396663,
+    "recall": 0.7225054624908959,
+    "roc_auc": 0.7524550861859675,
+    "positive_rate": 0.8512089274643522,
+    "calibration": [
+      {
+        "predicted_center": 0.1,
+        "n": 81,
+        "mean_predicted": 0.15064534273398253,
+        "mean_actual": 0.5308641975308642
+      },
+      {
+        "predicted_center": 0.3,
+        "n": 286,
+        "mean_predicted": 0.30971793862040353,
+        "mean_actual": 0.7167832167832168
+      },
+      {
+        "predicted_center": 0.5,
+        "n": 414,
+        "mean_predicted": 0.5109353164094695,
+        "mean_actual": 0.8140096618357487
+      },
+      {
+        "predicted_center": 0.7,
+        "n": 525,
+        "mean_predicted": 0.6997982789755379,
+        "mean_actual": 0.9333333333333333
+      },
+      {
+        "predicted_center": 0.9,
+        "n": 307,
+        "mean_predicted": 0.8555214024747626,
+        "mean_actual": 0.9706840390879479
+      }
+    ],
+    "data_label": "DEMO / SYNTHETIC DATA",
+    "note": "Metrics are on synthetic holdout only — not production-grade."
+  },
+  "artifact_sha256": "0a806691c3ba2f9b3a25c2afa7f0938b0fead3d77ac944854a1b42bf068d03db",
+  "run_id": "17ff251f-23a3-4261-b8e7-909547ced08e"
+}
