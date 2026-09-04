@@ -212,5 +212,105 @@ describe("Demo Mode Zero-Supabase Credentials Guarantee", () => {
     const resetData = await resetRes.json();
     expect(resetData.ok).toBe(true);
   });
+
+  it("13. opportunities have deterministic demo IDs and hero has corr_demo_48000 / opp_demo_48000", async () => {
+    const { GET: getOpportunities } = await import("@/app/api/recovery/opportunities/route");
+    const res = await getOpportunities(new Request("http://localhost:3000/api/recovery/opportunities"));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    const hero = data.opportunities.find((o: any) => o.amount === 4800000);
+
+    expect(hero).toBeDefined();
+    expect(hero.id).toBe("opp_demo_48000");
+    expect(hero.correlation_id).toBe("corr_demo_48000");
+    expect(hero.status).toBe("READY");
+    expect(hero.recommended_action).toBe("RETRY_LATER");
+    expect(hero.policy_status).toBe("SAFE_TO_EXECUTE");
+    expect(hero.autonomy_mode).toBe("AUTO");
+    expect(hero.confidence).toBe("HIGH");
+
+    // All demo opportunities must have deterministic opp_demo_ prefix
+    for (const opp of data.opportunities) {
+      expect(opp.id).toMatch(/^opp_demo_/);
+      expect(opp.correlation_id).toMatch(/^corr_demo_/);
+    }
+  });
+
+  it("14. Opportunity Detail API resolves across separate request/store rebuilds by id and correlation_id", async () => {
+    const { GET: getOppDetail } = await import("@/app/api/recovery/opportunities/[id]/route");
+
+    // Simulate separate serverless invocation: fresh rebuild of demo store
+    resetStore(buildSeedStore());
+
+    // Lookup by opportunity id
+    const resById = await getOppDetail(
+      new Request("http://localhost:3000/api/recovery/opportunities/opp_demo_48000"),
+      { params: Promise.resolve({ id: "opp_demo_48000" }) }
+    );
+    expect(resById.status).toBe(200);
+    const detailById = await resById.json();
+    expect(detailById.opportunity).toBeDefined();
+    expect(detailById.opportunity.id).toBe("opp_demo_48000");
+    expect(detailById.opportunity.amount).toBe(4800000);
+    expect(detailById.customer).toBeDefined();
+    expect(detailById.customer.id).toBe("cust_arjun");
+    expect(detailById.payment).toBeDefined();
+    expect(detailById.payment.id).toBe("pay_48000");
+    expect(detailById.recommendation).toBeDefined();
+    expect(detailById.recommendation.recommended_action).toBe("RETRY_LATER");
+    expect(detailById.recommendation.confidence).toBe("HIGH");
+    expect(detailById.policy_decisions.length).toBeGreaterThan(0);
+    expect(detailById.audit.length).toBeGreaterThan(0);
+
+    // Another fresh rebuild simulating yet another serverless request
+    resetStore(buildSeedStore());
+
+    // Lookup by correlation_id
+    const resByCorr = await getOppDetail(
+      new Request("http://localhost:3000/api/recovery/opportunities/corr_demo_48000"),
+      { params: Promise.resolve({ id: "corr_demo_48000" }) }
+    );
+    expect(resByCorr.status).toBe(200);
+    const detailByCorr = await resByCorr.json();
+    expect(detailByCorr.opportunity).toBeDefined();
+    expect(detailByCorr.opportunity.id).toBe("opp_demo_48000");
+    expect(detailByCorr.customer).toBeDefined();
+    expect(detailByCorr.payment).toBeDefined();
+    expect(detailByCorr.recommendation).toBeDefined();
+  });
+
+  it("15. every opportunity clicked from Recovery Queue resolves in Opportunity Detail API", async () => {
+    const { GET: getOpportunities } = await import("@/app/api/recovery/opportunities/route");
+    const { GET: getOppDetail } = await import("@/app/api/recovery/opportunities/[id]/route");
+
+    // Step 1: User fetches queue in request 1
+    const listRes = await getOpportunities(new Request("http://localhost:3000/api/recovery/opportunities"));
+    const listData = await listRes.json();
+    const queueOpportunities = listData.opportunities;
+    expect(queueOpportunities.length).toBeGreaterThanOrEqual(7);
+
+    // Step 2: Across new serverless request cycles, every clicked opportunity resolves
+    for (const item of queueOpportunities) {
+      // simulate fresh serverless instance
+      resetStore(buildSeedStore());
+
+      const clickByIdRes = await getOppDetail(
+        new Request(`http://localhost:3000/api/recovery/opportunities/${item.id}`),
+        { params: Promise.resolve({ id: item.id }) }
+      );
+      expect(clickByIdRes.status).toBe(200);
+      const dataById = await clickByIdRes.json();
+      expect(dataById.opportunity.id).toBe(item.id);
+
+      // Also test lookup by correlation_id
+      const clickByCorrRes = await getOppDetail(
+        new Request(`http://localhost:3000/api/recovery/opportunities/${item.correlation_id}`),
+        { params: Promise.resolve({ id: item.correlation_id }) }
+      );
+      expect(clickByCorrRes.status).toBe(200);
+      const dataByCorr = await clickByCorrRes.json();
+      expect(dataByCorr.opportunity.id).toBe(item.id);
+    }
+  });
 });
 

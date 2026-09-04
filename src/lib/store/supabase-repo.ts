@@ -123,8 +123,16 @@ export async function listOpportunities(merchantId: string): Promise<RecoveryOpp
 export async function getOpportunity(id: string): Promise<RecoveryOpportunity | null> {
   if (shouldUseDemoStore()) {
     const store = ensureSeeded();
+    const cleanId = id?.trim();
+    if (!cleanId) return null;
     return (
-      store.opportunities.find((o) => o.id === id || o.correlation_id === id) ?? null
+      store.opportunities.find(
+        (o) =>
+          o.id === cleanId ||
+          o.correlation_id === cleanId ||
+          o.id.toLowerCase() === cleanId.toLowerCase() ||
+          o.correlation_id.toLowerCase() === cleanId.toLowerCase()
+      ) ?? null
     );
   }
   if (UUID_REGEX.test(id)) {
@@ -217,9 +225,13 @@ export async function getRecommendationForOpportunity(
 ): Promise<AiRecommendation | null> {
   if (shouldUseDemoStore()) {
     const store = ensureSeeded();
-    const targetId = (await resolveOpportunityUuid(opportunityId)) ?? opportunityId;
+    const opp = await getOpportunity(opportunityId);
+    const targetId = opp?.id ?? opportunityId;
+    const targetCorr = opp?.correlation_id;
+    const matchesOpp = (oid: string | null | undefined) =>
+      oid === targetId || oid === opportunityId || (Boolean(targetCorr) && oid === targetCorr);
     const list = store.recommendations
-      .filter((r) => r.opportunity_id === targetId)
+      .filter((r) => matchesOpp(r.opportunity_id))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return list[0] ?? null;
   }
@@ -269,9 +281,13 @@ export async function insertRecommendation(
 export async function listPolicyDecisions(opportunityId: string): Promise<PolicyDecision[]> {
   if (shouldUseDemoStore()) {
     const store = ensureSeeded();
-    const targetId = (await resolveOpportunityUuid(opportunityId)) ?? opportunityId;
+    const opp = await getOpportunity(opportunityId);
+    const targetId = opp?.id ?? opportunityId;
+    const targetCorr = opp?.correlation_id;
+    const matchesOpp = (oid: string | null | undefined) =>
+      oid === targetId || oid === opportunityId || (Boolean(targetCorr) && oid === targetCorr);
     return store.policy_decisions
-      .filter((p) => p.opportunity_id === targetId)
+      .filter((p) => matchesOpp(p.opportunity_id))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
   const targetId = await resolveOpportunityUuid(opportunityId);
@@ -288,9 +304,13 @@ export async function listPolicyDecisions(opportunityId: string): Promise<Policy
 export async function listActions(opportunityId: string): Promise<RecoveryAction[]> {
   if (shouldUseDemoStore()) {
     const store = ensureSeeded();
-    const targetId = (await resolveOpportunityUuid(opportunityId)) ?? opportunityId;
+    const opp = await getOpportunity(opportunityId);
+    const targetId = opp?.id ?? opportunityId;
+    const targetCorr = opp?.correlation_id;
+    const matchesOpp = (oid: string | null | undefined) =>
+      oid === targetId || oid === opportunityId || (Boolean(targetCorr) && oid === targetCorr);
     return store.actions
-      .filter((a) => a.opportunity_id === targetId)
+      .filter((a) => matchesOpp(a.opportunity_id))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
   const targetId = await resolveOpportunityUuid(opportunityId);
@@ -307,9 +327,13 @@ export async function listActions(opportunityId: string): Promise<RecoveryAction
 export async function listOutcomes(opportunityId: string): Promise<RecoveryOutcome[]> {
   if (shouldUseDemoStore()) {
     const store = ensureSeeded();
-    const targetId = (await resolveOpportunityUuid(opportunityId)) ?? opportunityId;
+    const opp = await getOpportunity(opportunityId);
+    const targetId = opp?.id ?? opportunityId;
+    const targetCorr = opp?.correlation_id;
+    const matchesOpp = (oid: string | null | undefined) =>
+      oid === targetId || oid === opportunityId || (Boolean(targetCorr) && oid === targetCorr);
     return store.outcomes
-      .filter((o) => o.opportunity_id === targetId)
+      .filter((o) => matchesOpp(o.opportunity_id))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
   const targetId = await resolveOpportunityUuid(opportunityId);
@@ -339,9 +363,13 @@ export async function listAllOutcomes(merchantId: string): Promise<RecoveryOutco
 export async function listAudit(opportunityId: string): Promise<AuditEvent[]> {
   if (shouldUseDemoStore()) {
     const store = ensureSeeded();
-    const targetId = (await resolveOpportunityUuid(opportunityId)) ?? opportunityId;
+    const opp = await getOpportunity(opportunityId);
+    const targetId = opp?.id ?? opportunityId;
+    const targetCorr = opp?.correlation_id;
+    const matchesOpp = (oid: string | null | undefined) =>
+      oid === targetId || oid === opportunityId || (Boolean(targetCorr) && oid === targetCorr);
     return store.audit_events
-      .filter((a) => a.opportunity_id === targetId)
+      .filter((a) => matchesOpp(a.opportunity_id))
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }
   const targetId = await resolveOpportunityUuid(opportunityId);
@@ -588,7 +616,15 @@ export async function updateOpportunity(
 ): Promise<RecoveryOpportunity> {
   if (shouldUseDemoStore()) {
     const store = ensureSeeded();
-    const idx = store.opportunities.findIndex((o) => o.id === id || o.correlation_id === id);
+    const cleanId = id?.trim();
+    if (!cleanId) throw new Error(`Invalid opportunity id: ${id}`);
+    const idx = store.opportunities.findIndex(
+      (o) =>
+        o.id === cleanId ||
+        o.correlation_id === cleanId ||
+        o.id.toLowerCase() === cleanId.toLowerCase() ||
+        o.correlation_id.toLowerCase() === cleanId.toLowerCase()
+    );
     if (idx >= 0) {
       store.opportunities[idx] = {
         ...store.opportunities[idx],

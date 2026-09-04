@@ -51,7 +51,7 @@ export async function executeRecovery(
   ensureSeeded();
   const store = getStore();
   const flags = store.simulation_flags;
-  const opportunity = store.opportunities.find((o) => o.id === opportunityId);
+  const opportunity = findOpp(opportunityId);
   if (!opportunity) throw new Error("Opportunity not found");
 
   if (opportunity.status === "RECOVERED") {
@@ -596,7 +596,15 @@ function createAction(
 }
 
 function findOpp(id: string) {
-  return getStore().opportunities.find((o) => o.id === id);
+  const cleanId = id?.trim();
+  if (!cleanId) return undefined;
+  return getStore().opportunities.find(
+    (o) =>
+      o.id === cleanId ||
+      o.correlation_id === cleanId ||
+      o.id.toLowerCase() === cleanId.toLowerCase() ||
+      o.correlation_id.toLowerCase() === cleanId.toLowerCase()
+  );
 }
 
 export function analyzeOpportunity(opportunityId: string) {

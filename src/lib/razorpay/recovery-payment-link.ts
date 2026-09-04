@@ -48,9 +48,14 @@ export interface CreateRecoveryPaymentLinkResult {
 
 function findExistingPaymentLinkAction(opportunityId: string): RecoveryAction | null {
   const store = getStore();
+  const opp = findOpp(opportunityId);
+  const targetId = opp?.id ?? opportunityId;
+  const targetCorr = opp?.correlation_id;
   const candidates = store.actions.filter(
     (a) =>
-      a.opportunity_id === opportunityId &&
+      (a.opportunity_id === targetId ||
+        a.opportunity_id === opportunityId ||
+        (Boolean(targetCorr) && a.opportunity_id === targetCorr)) &&
       a.action_type === "PAYMENT_LINK" &&
       (a.status === "succeeded" || a.status === "executing" || a.status === "pending")
   );
@@ -83,7 +88,7 @@ export async function createRecoveryPaymentLink(
   opts: { actor?: string; approvedByMerchant?: boolean } = {}
 ): Promise<CreateRecoveryPaymentLinkResult> {
   const store = getStore();
-  const opportunity = store.opportunities.find((o) => o.id === opportunityId);
+  const opportunity = findOpp(opportunityId);
   if (!opportunity) {
     throw new Error("Opportunity not found");
   }
@@ -441,7 +446,15 @@ export async function createRecoveryPaymentLink(
 }
 
 function findOpp(id: string) {
-  return getStore().opportunities.find((o) => o.id === id);
+  const cleanId = id?.trim();
+  if (!cleanId) return undefined;
+  return getStore().opportunities.find(
+    (o) =>
+      o.id === cleanId ||
+      o.correlation_id === cleanId ||
+      o.id.toLowerCase() === cleanId.toLowerCase() ||
+      o.correlation_id.toLowerCase() === cleanId.toLowerCase()
+  );
 }
 
 /** Resolve Payment Link status for UI / Copilot (read-only). */

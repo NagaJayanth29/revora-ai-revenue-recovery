@@ -158,7 +158,15 @@ export function recordIncident(
 }
 
 export function findOpportunity(id: string): RecoveryOpportunity | undefined {
-  return getStore().opportunities.find((o) => o.id === id);
+  const cleanId = id?.trim();
+  if (!cleanId) return undefined;
+  return getStore().opportunities.find(
+    (o) =>
+      o.id === cleanId ||
+      o.correlation_id === cleanId ||
+      o.id.toLowerCase() === cleanId.toLowerCase() ||
+      o.correlation_id.toLowerCase() === cleanId.toLowerCase()
+  );
 }
 
 export function findCustomer(id: string): Customer | undefined {
@@ -175,7 +183,15 @@ export function updateOpportunity(
   patch: Partial<RecoveryOpportunity>
 ): RecoveryOpportunity | undefined {
   const store = getStore();
-  const idx = store.opportunities.findIndex((o) => o.id === id);
+  const cleanId = id?.trim();
+  if (!cleanId) return undefined;
+  const idx = store.opportunities.findIndex(
+    (o) =>
+      o.id === cleanId ||
+      o.correlation_id === cleanId ||
+      o.id.toLowerCase() === cleanId.toLowerCase() ||
+      o.correlation_id.toLowerCase() === cleanId.toLowerCase()
+  );
   if (idx < 0) return undefined;
   store.opportunities[idx] = {
     ...store.opportunities[idx],

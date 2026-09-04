@@ -1,4 +1,3 @@
-import { createId } from "@/lib/utils";
 import { defaultPolicyRules, evaluatePolicy, riskFromAmount, toAutonomyMode } from "@/lib/policy/engine";
 import { compareInterventions, recoveryProbabilityModel } from "@/lib/recovery/probability-model";
 import {
@@ -319,15 +318,34 @@ export function buildSeedStore(): RevoraStore {
   }
 
   // Hero opportunity should be READY with RETRY_LATER for ₹48,000
-  const hero = store.opportunities.find((o) => o.amount === 48_000_00);
+  const hero = store.opportunities.find((o) => o.amount === 48_000_00 || o.id === "opp_demo_48000");
   if (hero) {
     // Ensure deterministic demo narrative
+    hero.id = "opp_demo_48000";
     hero.recommended_action = "RETRY_LATER";
     hero.status = "READY";
     hero.policy_status = "SAFE_TO_EXECUTE";
     hero.autonomy_mode = "AUTO";
     hero.confidence = "HIGH";
     hero.correlation_id = "corr_demo_48000";
+
+    const heroRec = store.recommendations.find(
+      (r) => r.opportunity_id === hero.id || r.opportunity_id === "opp_demo_48000"
+    );
+    if (heroRec) {
+      heroRec.recommended_action = "RETRY_LATER";
+      heroRec.confidence = "HIGH";
+      heroRec.opportunity_id = "opp_demo_48000";
+    }
+
+    const heroPolicy = store.policy_decisions.find(
+      (p) => p.opportunity_id === hero.id || p.opportunity_id === "opp_demo_48000"
+    );
+    if (heroPolicy) {
+      heroPolicy.action = "RETRY_LATER";
+      heroPolicy.decision = "SAFE_TO_EXECUTE";
+      heroPolicy.opportunity_id = "opp_demo_48000";
+    }
   }
 
   // Experiment
@@ -345,7 +363,7 @@ export function buildSeedStore(): RevoraStore {
   };
 
   const assignments: ExperimentAssignment[] = store.opportunities.map((o) => ({
-    id: createId("asg"),
+    id: `asg_demo_${o.id}`,
     experiment_id: experiment.id,
     opportunity_id: o.id,
     arm: o.experiment_arm ?? "treatment",
@@ -371,7 +389,7 @@ export function buildSeedStore(): RevoraStore {
       recovery_action: "Idempotent event store skipped reprocessing",
       final_state: "Recovered safely — single opportunity retained",
       resolved: true,
-      opportunity_id: hero?.id ?? null,
+      opportunity_id: hero?.id ?? "opp_demo_48000",
       correlation_id: "corr_demo_48000",
       created_at: hoursAgo(5),
       resolved_at: hoursAgo(5),
@@ -411,10 +429,12 @@ function analyzeAndInsert(
 ) {
   const customer = store.customers.find((c) => c.id === payment.customer_id) ?? null;
   const createdAt = hoursAgo(opts.hours ?? 2);
-  const correlationId = createId("corr");
+  const suffix = payment.id.replace(/^pay_/, "");
+  const opportunityId = `opp_demo_${suffix}`;
+  const correlationId = suffix === "48000" ? "corr_demo_48000" : `corr_demo_${suffix}`;
 
   let opportunity: RecoveryOpportunity = {
-    id: createId("opp"),
+    id: opportunityId,
     merchant_id: MERCHANT_ID,
     customer_id: payment.customer_id,
     transaction_id: tx.id,
@@ -462,6 +482,7 @@ function analyzeAndInsert(
     payment,
     confidence: decision.confidence,
   });
+  policy.id = `pdec_demo_${suffix}`;
 
   let status: OpportunityStatus = "READY";
   if (opts.status) status = opts.status;
@@ -498,6 +519,7 @@ function analyzeAndInsert(
       payment,
       confidence: decision.confidence,
     });
+    blocked.id = `pdec_demo_${suffix}_blocked`;
     opportunity.policy_status = blocked.decision;
     opportunity.policy_reason = blocked.reasons.join("; ");
     opportunity.autonomy_mode = toAutonomyMode(blocked.decision);
@@ -509,7 +531,7 @@ function analyzeAndInsert(
   store.policy_decisions.push(policy);
 
   const rec: AiRecommendation = {
-    id: createId("rec"),
+    id: `rec_demo_${suffix}`,
     merchant_id: MERCHANT_ID,
     opportunity_id: opportunity.id,
     recommended_action: decision.recommended_action,
@@ -527,7 +549,7 @@ function analyzeAndInsert(
 
   const audits: AuditEvent[] = [
     {
-      id: createId("aud"),
+      id: `aud_demo_${suffix}_webhook`,
       merchant_id: MERCHANT_ID,
       opportunity_id: opportunity.id,
       actor: "razorpay.webhook",
@@ -539,13 +561,13 @@ function analyzeAndInsert(
       ai_recommendation: null,
       policy_decision: null,
       execution_result: null,
-      request_id: createId("req"),
+      request_id: `req_demo_${suffix}_webhook`,
       correlation_id: correlationId,
       metadata: {},
       created_at: createdAt,
     },
     {
-      id: createId("aud"),
+      id: `aud_demo_${suffix}_created`,
       merchant_id: MERCHANT_ID,
       opportunity_id: opportunity.id,
       actor: "revora.detector",
@@ -563,7 +585,7 @@ function analyzeAndInsert(
       created_at: new Date(new Date(createdAt).getTime() + 1000).toISOString(),
     },
     {
-      id: createId("aud"),
+      id: `aud_demo_${suffix}_analysis`,
       merchant_id: MERCHANT_ID,
       opportunity_id: opportunity.id,
       actor: "revora.decision_engine",
@@ -584,7 +606,7 @@ function analyzeAndInsert(
 
   if (status === "RECOVERED") {
     audits.push({
-      id: createId("aud"),
+      id: `aud_demo_${suffix}_recovered`,
       merchant_id: MERCHANT_ID,
       opportunity_id: opportunity.id,
       actor: "revora.outcome",
@@ -599,6 +621,19 @@ function analyzeAndInsert(
       request_id: null,
       correlation_id: correlationId,
       metadata: { actual_recovered_amount: payment.amount },
+      created_at: new Date(new Date(createdAt).getTime() + 60000).toISOString(),
+    });
+
+    store.outcomes.push({
+      id: `out_demo_${suffix}`,
+      merchant_id: MERCHANT_ID,
+      opportunity_id: opportunity.id,
+      action_id: null,
+      actual_recovered_amount: payment.amount,
+      incremental_recovered_amount: opportunity.incremental_recovered_amount,
+      baseline_expected: Math.round(payment.amount * (opportunity.baseline_probability ?? 0.2)),
+      verified_via: "demo",
+      payment_status: "captured",
       created_at: new Date(new Date(createdAt).getTime() + 60000).toISOString(),
     });
   }
@@ -635,7 +670,7 @@ export function computeExperimentResults(store: RevoraStore, experimentId: strin
   const treatmentRecovered = sumRecovered(treatment);
 
   return {
-    id: createId("eres"),
+    id: `eres_demo_${experimentId}`,
     experiment_id: experimentId,
     control_recovered: controlRecovered,
     treatment_recovered: treatmentRecovered,
@@ -668,10 +703,10 @@ export function transitionOpportunity(
   if (opp.status !== to && !canTransition(opp.status, to)) {
     throw new Error(`Invalid transition ${opp.status} → ${to}`);
   }
-  const updated = updateOpportunity(id, { status: to })!;
+  const updated = updateOpportunity(opp.id, { status: to })!;
   writeAudit({
     merchant_id: opp.merchant_id,
-    opportunity_id: id,
+    opportunity_id: opp.id,
     actor: actor.name,
     actor_type: actor.type,
     event: `STATUS_${to}`,
@@ -689,7 +724,16 @@ export function transitionOpportunity(
 }
 
 function findOpportunity(id: string) {
-  return getStore().opportunities.find((o) => o.id === id);
+  const cleanId = id?.trim();
+  if (!cleanId) return undefined;
+  return getStore().opportunities.find(
+    (o) =>
+      o.id === cleanId ||
+      o.correlation_id === cleanId ||
+      o.id.toLowerCase() === cleanId.toLowerCase() ||
+      o.correlation_id.toLowerCase() === cleanId.toLowerCase()
+  );
 }
 
 export { getMerchantId, findCustomer, findPayment, recordIncident, writeAudit, MERCHANT_ID };
+
