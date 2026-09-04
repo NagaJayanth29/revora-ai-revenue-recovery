@@ -19,7 +19,7 @@ export default function AuditTrailPage() {
       setLoading(true);
       setError(null);
       const data = await fetchLive<{ events?: AuditEvent[] }>(
-        "/api/audit/a0000000-0000-4000-8000-000000000051"
+        "/api/audit/opp_demo_48000"
       );
       setEvents(data.events || []);
     } catch (e) {
@@ -87,7 +87,7 @@ export default function AuditTrailPage() {
             </div>
             <div className="text-[10px] text-[#8b92a5] font-mono mt-0.5">
               <Link
-                href="/opportunities/a0000000-0000-4000-8000-000000000051"
+                href="/opportunities/opp_demo_48000"
                 className="text-[#d4a574] hover:underline"
               >
                 View opportunity detail →

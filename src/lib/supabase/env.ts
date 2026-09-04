@@ -10,12 +10,17 @@ function required(name: string, value: string | undefined): string {
   return value.trim();
 }
 
+function isDemoEnv(): boolean {
+  const envDemo = (process.env.NEXT_PUBLIC_DEMO_MODE || process.env.DEMO_MODE)?.toLowerCase().trim();
+  return envDemo === "true" || envDemo === "1" || envDemo === "yes";
+}
+
 /**
  * Check whether Supabase browser configuration is present.
  * In Demo Mode, Supabase is disabled and credentials are not required.
  */
 export function isSupabaseConfigured(): boolean {
-  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return false;
+  if (isDemoEnv()) return false;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const pubKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
   return Boolean(url && pubKey);
@@ -26,7 +31,7 @@ export function isSupabaseConfigured(): boolean {
  * In Demo Mode, Supabase is disabled and credentials are not required.
  */
 export function isSupabaseServerConfigured(): boolean {
-  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return false;
+  if (isDemoEnv()) return false;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const secretKey = process.env.SUPABASE_SECRET_KEY?.trim();
   return Boolean(url && secretKey);

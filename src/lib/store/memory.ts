@@ -110,7 +110,8 @@ export function resetStore(seed?: RevoraStore) {
 }
 
 export function isDemoMode(): boolean {
-  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return true;
+  const envDemo = (process.env.NEXT_PUBLIC_DEMO_MODE || process.env.DEMO_MODE)?.toLowerCase().trim();
+  if (envDemo === "true" || envDemo === "1" || envDemo === "yes") return true;
   if (process.env.RAZORPAY_MODE === "demo") return true;
   const keyId = process.env.RAZORPAY_KEY_ID;
   const secret = process.env.RAZORPAY_KEY_SECRET;

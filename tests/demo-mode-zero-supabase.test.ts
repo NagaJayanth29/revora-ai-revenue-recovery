@@ -312,5 +312,39 @@ describe("Demo Mode Zero-Supabase Credentials Guarantee", () => {
       expect(dataByCorr.opportunity.id).toBe(item.id);
     }
   });
+
+  it("16. legacy demo UUID a0000000-0000-4000-8000-000000000051 resolves to hero opportunity", async () => {
+    const { getOpportunity } = await import("@/lib/store/supabase-repo");
+    const { GET: getOppDetail } = await import("@/app/api/recovery/opportunities/[id]/route");
+
+    const opp = await getOpportunity("a0000000-0000-4000-8000-000000000051");
+    expect(opp).toBeDefined();
+    expect(opp?.id).toBe("opp_demo_48000");
+    expect(opp?.amount).toBe(4800000);
+
+    const res = await getOppDetail(
+      new Request("http://localhost:3000/api/recovery/opportunities/a0000000-0000-4000-8000-000000000051"),
+      { params: Promise.resolve({ id: "a0000000-0000-4000-8000-000000000051" }) }
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.opportunity.id).toBe("opp_demo_48000");
+  });
+
+  it("17. URL pathname fallback resolves ID when params is empty, and invalid ID returns 400", async () => {
+    const { GET: getOppDetail } = await import("@/app/api/recovery/opportunities/[id]/route");
+
+    // URL fallback test
+    const req = new Request("http://localhost:3000/api/recovery/opportunities/opp_demo_48000");
+    const res = await getOppDetail(req, { params: Promise.resolve({ id: "" }) });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.opportunity.id).toBe("opp_demo_48000");
+
+    // Undefined ID rejection test
+    const reqUndef = new Request("http://localhost:3000/api/recovery/opportunities/undefined");
+    const resUndef = await getOppDetail(reqUndef, { params: Promise.resolve({ id: "undefined" }) });
+    expect(resUndef.status).toBe(400);
+  });
 });
 

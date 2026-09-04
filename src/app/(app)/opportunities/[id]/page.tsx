@@ -50,9 +50,26 @@ const EXEC_STEPS = [
   "RECOVERY CONFIRMED",
 ] as const;
 
-export default function OpportunityDetailPage() {
-  const params = useParams<{ id: string }>();
-  const id = params.id;
+export default function OpportunityDetailPage(props: {
+  params?: Promise<{ id?: string }>;
+}) {
+  const pageParamsProp = props?.params;
+  const clientParams = useParams<{ id?: string | string[] }>();
+
+  // Extract initial ID immediately if available from params or URL
+  const getInitialId = (): string => {
+    const fromClient = Array.isArray(clientParams?.id) ? clientParams.id[0] : clientParams?.id;
+    if (fromClient && fromClient !== "undefined" && fromClient !== "null") return fromClient;
+    if (typeof window !== "undefined") {
+      const match = window.location.pathname.match(/\/opportunities\/([^/?#]+)/);
+      if (match && match[1] && match[1] !== "undefined" && match[1] !== "null") {
+        return decodeURIComponent(match[1]);
+      }
+    }
+    return "";
+  };
+
+  const [id, setId] = useState<string>(getInitialId);
   const [data, setData] = useState<DetailPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +78,26 @@ export default function OpportunityDetailPage() {
   const [execStep, setExecStep] = useState(-1);
   const [simulated, setSimulated] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Sync if pageParamsProp arrives
+  useEffect(() => {
+    if (pageParamsProp) {
+      Promise.resolve(pageParamsProp).then((p) => {
+        const val = Array.isArray(p?.id) ? p.id[0] : p?.id;
+        if (val && val !== "undefined" && val !== "null") {
+          setId(val);
+        }
+      });
+    }
+  }, [pageParamsProp]);
+
+  // Sync if clientParams updates
+  useEffect(() => {
+    const val = Array.isArray(clientParams?.id) ? clientParams.id[0] : clientParams?.id;
+    if (val && val !== "undefined" && val !== "null") {
+      setId(val);
+    }
+  }, [clientParams]);
 
   const handleCopyLink = () => {
     if (paymentLinkMeta?.url) {
@@ -71,10 +108,13 @@ export default function OpportunityDetailPage() {
   };
 
   const load = useCallback(async () => {
+    if (!id || id === "undefined" || id === "null") {
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const json = await fetchLive<DetailPayload>(`/api/recovery/opportunities/${id}`);
+      const json = await fetchLive<DetailPayload>(`/api/recovery/opportunities/${encodeURIComponent(id)}`);
       setData(json);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Opportunity not found");
@@ -84,10 +124,18 @@ export default function OpportunityDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (id && id !== "undefined" && id !== "null") {
+      void load();
+    }
+  }, [id, load]);
 
-  useEffect(() => onRevoraDataChanged(() => void load()), [load]);
+  useEffect(() => {
+    return onRevoraDataChanged(() => {
+      if (id && id !== "undefined" && id !== "null") {
+        void load();
+      }
+    });
+  }, [id, load]);
 
   const alternatives: InterventionComparison[] = useMemo(() => {
     const fromRec = [...(data?.recommendation?.alternatives ?? [])];
@@ -288,7 +336,7 @@ export default function OpportunityDetailPage() {
         </Link>
       </div>
 
-      <PageState loading={loading} error={error} onRetry={load}>
+      <PageState loading={loading || (!data && !error)} error={error} onRetry={load}>
         {opp && (
           <>
             {/* Top Lifecycle Stepper */}

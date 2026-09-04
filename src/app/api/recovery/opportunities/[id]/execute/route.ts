@@ -6,8 +6,27 @@ import type { InterventionType } from "@/lib/domain/types";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { id } = await ctx.params;
+export async function POST(
+  request: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  const resolved = ctx?.params ? await ctx.params : undefined;
+  let id = resolved?.id ? String(resolved.id).trim() : undefined;
+  if (!id || id === "undefined" || id === "null") {
+    try {
+      const url = new URL(request.url);
+      const match = url.pathname.match(/\/opportunities\/([^/]+)\/execute/);
+      if (match && match[1]) id = decodeURIComponent(match[1]).trim();
+    } catch {
+      // ignore
+    }
+  }
+  if (!id || id === "undefined" || id === "null") {
+    return NextResponse.json(
+      { error: "Invalid opportunity ID" },
+      { status: 400, headers: { "Cache-Control": "no-store" } }
+    );
+  }
   const body = await request.json().catch(() => ({}));
   try {
     await hydrateFromSupabase();

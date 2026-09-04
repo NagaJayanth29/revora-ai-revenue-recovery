@@ -5,9 +5,28 @@ import { getOpportunityDetail } from "@/lib/store/supabase-repo";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = await ctx.params;
+    const resolved = ctx?.params ? await ctx.params : undefined;
+    let id = resolved?.id ? String(resolved.id).trim() : undefined;
+    if (!id || id === "undefined" || id === "null") {
+      try {
+        const url = new URL(request.url);
+        const match = url.pathname.match(/\/opportunities\/([^/]+)\/simulate/);
+        if (match && match[1]) id = decodeURIComponent(match[1]).trim();
+      } catch {
+        // ignore
+      }
+    }
+    if (!id || id === "undefined" || id === "null") {
+      return NextResponse.json(
+        { error: "Invalid opportunity ID" },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
     const body = await request.json().catch(() => ({}));
     await hydrateFromSupabase();
     const detail = await getOpportunityDetail(id);

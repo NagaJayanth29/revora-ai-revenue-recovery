@@ -10,8 +10,27 @@ export const dynamic = "force-dynamic";
  * Re-analyze: hydrate current Supabase state → feature extract → model →
  * counterfactuals → policy → persist recommendation. Never creates outcomes.
  */
-export async function POST(_: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { id } = await ctx.params;
+export async function POST(
+  request: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  const resolved = ctx?.params ? await ctx.params : undefined;
+  let id = resolved?.id ? String(resolved.id).trim() : undefined;
+  if (!id || id === "undefined" || id === "null") {
+    try {
+      const url = new URL(request.url);
+      const match = url.pathname.match(/\/opportunities\/([^/]+)\/analyze/);
+      if (match && match[1]) id = decodeURIComponent(match[1]).trim();
+    } catch {
+      // ignore
+    }
+  }
+  if (!id || id === "undefined" || id === "null") {
+    return NextResponse.json(
+      { error: "Invalid opportunity ID" },
+      { status: 400, headers: { "Cache-Control": "no-store" } }
+    );
+  }
   try {
     await hydrateFromSupabase();
     const outcomeCountBefore = getStore().outcomes.filter((o) => o.opportunity_id === id).length;

@@ -47,7 +47,7 @@ const NAV_SECTIONS: NavSection[] = [
     heading: "RECOVERY",
     items: [
       { href: "/queue", label: "Queue", icon: Layers },
-      { href: "/opportunities/a0000000-0000-4000-8000-000000000051", label: "Opportunities", icon: Target },
+      { href: "/opportunities/opp_demo_48000", label: "Opportunities", icon: Target },
     ],
   },
   {
